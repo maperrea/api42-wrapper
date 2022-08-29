@@ -31,8 +31,8 @@ Api42.get(url, filter={}, range={}, page={}, sort=None, params={}, sleep_on_hour
 - **page**: dict, extra url params. key,value pairs become 'page[key]=value'. default: {'size': 100, 'number': 1}
 - **sort**: list, extra url param. becomes 'sort=value1,value2,...'
 - **params**: dict, raw extra params. key,value pairs become 'key=value'
-- **sleep**\_on\_hourly\_limit: defines if the function should sleep if the hourly limit is reached
-- **fetch**\_all: defines if all pages of data should be fetched or not
+- **sleep\_on\_hourly\_limit**: defines if the function should sleep if the hourly limit is reached
+- **fetch\_all**: defines if all pages of data should be fetched or not
 
 => return value: (status\_code, json)
 
