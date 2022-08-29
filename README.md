@@ -35,5 +35,5 @@ return value: (status_code, json)
 ```python
 from api42 import Api42
 client = Api42(UID, SECRET)
-status, data = client.get('/v2/users', filter={'login': 'maperrea'})
+status, data = client.get('/v2/users/maperrea/projects_users', filter={'status': 'finished', 'occurence': 0})
 ```
