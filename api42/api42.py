@@ -18,7 +18,7 @@ class Api42:
     # make a GET call to the api
     # url will be appended to the base_url
     # the key-value pairs for filter, range & page will be transformed as such in the call params:
-    #   filter={key: value} => "filter[key]=value"
+    #   filter={key1: value1, key2: value2} => "filter[key1]=value1&filter[key2]=value2"
     # sort takes a list and will become: "sort=value1,value2,..."
     # params are raw params (ex: params={'filter[login]': maperrea})
     # will automatically sleep on secondly limit reached
