@@ -1,19 +1,27 @@
-from authlib.integrations.requests_client import OAuth2Session
-from authlib.integrations.base_client.errors import MissingTokenError, TokenExpiredError
 from datetime import datetime, timedelta
 from time import sleep
+import requests
 
 class Api42:
 
     def __init__(self, uid, secret, scope='public', base_url='https://api.intra.42.fr'):
-        self.client = OAuth2Session(
-                client_id=uid,
-                client_secret=secret,
-                token_endpoint='https://api.intra.42.fr/oauth/token',
-                scope=scope,
-                )
+        self.client = requests.Session()
+        self.uid = uid
+        self.secret = secret
+        self.scope = scope
         self.base_url = base_url
         self.next_time_full = datetime.now() + timedelta(seconds=1)
+        self.fetch_token()
+
+    def fetch_token(self):
+        params = {
+                'grant_type': 'client_credentials',
+                'client_id': self.uid,
+                'client_secret': self.secret,
+                'scope': self.scope,
+            }
+        response = requests.post(self.base_url + '/oauth/token', params=params)
+        self.client.headers = {'Authorization': f"Bearer {response.json()['access_token']}"}
 
     # make a GET call to the api
     # url will be appended to the base_url
@@ -36,20 +44,16 @@ class Api42:
         for k, v in page.items():
             params[f"page[{k}]"] = v
         while True:
-            try:
-                response = self.client.get(self.base_url + url, params=params)
-            except MissingTokenError:
-                self.client.fetch_token()
-                continue
-            except TokenExpiredError:
-                self.client.fetch_token()
-                continue
+            response = self.client.get(self.base_url + url, params=params)
             if response.status_code == 400 or response.status_code == 403 or response.status_code == 404:
                 code = response.status_code
-                data = response.json()
+                try:
+                    data = response.json()
+                except:
+                    data = response._content
                 break
             elif response.status_code == 401:
-                self.client.fetch_token()
+                self.fetch_token()
             elif response.status_code == 429:
                 if int(response.headers['retry-after']) == 1: # it's an int so if the secondly limit is hit then it's 1
                     if (next_time_full - datetime.now()).total_seconds() > 0:
