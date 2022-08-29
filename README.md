@@ -14,10 +14,10 @@ Takes care of:
 ```python
 Api42(uid, secret, scope='public', base_url='https://api.intra.42.fr')
 ```
-- uid: your application's uid
-- secret: your application's secret
-- scope: the scope of the fetched token
-- base\_url: the url prepended to the endpoints
+- *uid*: your application's uid
+- *secret*: your application's secret
+- *scope*: the scope of the fetched token
+- *base*\_url: the url prepended to the endpoints
 
 #### Get
 
@@ -25,16 +25,16 @@ Api42(uid, secret, scope='public', base_url='https://api.intra.42.fr')
 Api42.get(self, url, filter={}, range={}, page={}, sort=None, params={}, sleep_on_hourly_limit=False, fetch_all=True)
 ```
 
-- url: the call endpoint (appended to the base\_url)
-- filter: dict, extra url params. key,value pairs become 'filter[key]=value'
-- range: dict, extra url params. key,value pairs become 'range[key]=value'
-- page: dict, extra url params. key,value pairs become 'page[key]=value'. default: {'size': 100, 'number': 1}
-- sort: list, extra url param. becomes 'sort=value1,value2,...'
-- params: dict, raw extra params. key,value pairs become 'key=value'
-- sleep\_on\_hourly\_limit: defines if the function should sleep if the hourly limit is reached
-- fetch\_all: defines if all pages of data should be fetched or not
+- *url*: the call endpoint (appended to the base\_url)
+- *filter*: dict, extra url params. key,value pairs become 'filter[key]=value'
+- *range*: dict, extra url params. key,value pairs become 'range[key]=value'
+- *page*: dict, extra url params. key,value pairs become 'page[key]=value'. default: {'size': 100, 'number': 1}
+- *sort*: list, extra url param. becomes 'sort=value1,value2,...'
+- *params*: dict, raw extra params. key,value pairs become 'key=value'
+- *sleep*\_on\_hourly\_limit: defines if the function should sleep if the hourly limit is reached
+- *fetch*\_all: defines if all pages of data should be fetched or not
 
-* return value: (status\_code, json)
+=> return value: (status\_code, json)
 
 #### Example
 
