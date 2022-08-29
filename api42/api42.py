@@ -23,7 +23,7 @@ class Api42:
     # params are raw params (ex: params={'filter[login]': maperrea})
     # will automatically sleep on secondly limit reached
     # will sleep on hourly limit reached if sleep_on_hourly_limit=True
-    def get(self, url, filter={}, range={}, page={}, sort=None, params={}, sleep_on_hourly_limit=False):
+    def get(self, url, filter={}, range={}, page={}, sort=None, params={}, sleep_on_hourly_limit=False, fetch_all=True):
         data = []
         params['page[size]'] = 100
         params['page[number]'] = 1
@@ -65,7 +65,7 @@ class Api42:
                     data = r
                     break
                 data += r
-                if len(r) < params['page[size]']:
+                if not fetch_all or len(r) < params['page[size]']:
                     break
                 if int(response.headers['x-secondly-ratelimit-remaining']) == 0:
                     if (next_time_full - datetime.now()).total_seconds() > 0:
