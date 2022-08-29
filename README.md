@@ -22,7 +22,7 @@ Api42(uid, secret, scope='public', base_url='https://api.intra.42.fr')
 #### Get
 
 ```python
-Api42.get(self, url, filter={}, range={}, page={}, sort=None, params={}, sleep_on_hourly_limit=False, fetch_all=True)
+Api42.get(url, filter={}, range={}, page={}, sort=None, params={}, sleep_on_hourly_limit=False, fetch_all=True)
 ```
 
 - **url**: the call endpoint (appended to the base\_url)
