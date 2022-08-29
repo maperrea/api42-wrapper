@@ -41,5 +41,7 @@ Api42.get(url, filter={}, range={}, page={}, sort=None, params={}, sleep_on_hour
 ```python
 >>> from api42 import Api42
 >>> client = Api42(UID, SECRET)
->>> status, data = client.get('/v2/users/maperrea/projects_users', filter={'status': 'finished', 'occurence': 0})
+>>> status, data = client.get('/v2/cursus/21/users', filter={'primary_campus_id': 21})
+>>> len(data)
+575
 ```
