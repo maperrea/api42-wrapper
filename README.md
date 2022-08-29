@@ -1,7 +1,7 @@
 # Python api42 wrapper
 
 Provides the 'Api42' class to interact with school 42's API. \
-Takes care of fetching & refreshing the token, sleeping on request limit reached and formatting the url & parameters
+Takes care of fetching & refreshing the token, fetching every page of data, sleeping on request limit reached and formatting the url & parameters
 
 #### Usage:
 * Init
@@ -24,4 +24,11 @@ Api42.get(
 	params: dict, raw extra params. key,value pairs become 'key=value'
 	sleep_on_hourly_limit: defines if the function should sleep if the hourly limit is reached. default: False
 )
+return value: (status_code, json)
+```
+#### Example
+```python
+from api42 import Api42
+c = Api42(UID, SECRET)
+status, data = c.get('/v2/users', filter={'login': 'maperrea'}
 ```
