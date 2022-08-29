@@ -45,7 +45,9 @@ class Api42:
                 self.client.fetch_token()
                 continue
             if response.status_code == 400 or response.status_code == 403 or response.status_code == 404:
-                return (response.status_code, response.json())
+                code = response.status_code
+                data = response.json()
+                break
             elif response.status_code == 401:
                 self.client.fetch_token()
             elif response.status_code == 429:
@@ -56,16 +58,19 @@ class Api42:
                     #print(f"hourly limit reached, sleeping for {response.headers['retry-after']} seconds")
                     sleep(int(response.headers['retry-after']))
                 else:
-                    return (response.status_code, response.json())
+                    code = response.status_code
+                    break
             elif response.status_code == 200:
                 if int(response.headers['x-secondly-ratelimit-remaining']) == int(response.headers['x-secondly-ratelimit-limit']) - 1:
                     next_time_full = datetime.now() + timedelta(seconds=1.0 - float(response.headers['x-runtime']))
                 r = response.json()
                 if type(r) != list:
                     data = r
+                    code = 200
                     break
                 data += r
                 if not fetch_all or len(r) < params['page[size]']:
+                    code = 200
                     break
                 if int(response.headers['x-secondly-ratelimit-remaining']) == 0:
                     if (next_time_full - datetime.now()).total_seconds() > 0:
@@ -78,5 +83,5 @@ class Api42:
         range.clear()
         page.clear()
         params.clear()
-        return (200, data)
+        return (code, data)
 
