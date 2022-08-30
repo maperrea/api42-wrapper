@@ -4,16 +4,20 @@ import requests
 
 class Api42:
 
-    def __init__(self, uid, secret, scope='public', base_url='https://api.intra.42.fr'):
+    #TODO webapp flow
+
+    def __init__(self, uid, secret, scope='public', base_url='https://api.intra.42.fr', sleep_on_hourly_limit=False):
         self.client = requests.Session()
         self.uid = uid
         self.secret = secret
         self.scope = scope
         self.base_url = base_url
         self.next_time_full = datetime.now() + timedelta(seconds=1)
-        self.fetch_token()
+        self.sleep_on_hourly_limit = sleep_on_hourly_limit
+        self._fetch_token()
 
-    def fetch_token(self):
+    #actually make the call to fetch a token
+    def _fetch_token(self):
         params = {
                 'grant_type': 'client_credentials',
                 'client_id': self.uid,
@@ -21,7 +25,54 @@ class Api42:
                 'scope': self.scope,
             }
         response = requests.post(self.base_url + '/oauth/token', params=params)
-        self.client.headers = {'Authorization': f"Bearer {response.json()['access_token']}"}
+        self.token = response.json()['access_token']
+        self.set_token(response.json()['access_token'])
+
+    #set the header to another token (ex: webapp flow)
+    def set_token(self, token):
+        self.client.headers = {"Authorization": f"BEARER {token}"}
+
+    #reset to the original token, does not make a call (if token has expired it will simply 401)
+    def reset_token(self):
+        self.set_token(self.token)
+
+    def _request(self, method, url, token=None, **kwargs):
+        if token:
+            self.set_token(token)
+
+        while True:
+            response = self.client.request(method, self.base_url + url, **kwargs)
+            status = response.status_code
+            if status == 400 or status == 403 or status == 404:
+                if status == 404:
+                    data = response._content
+                else:
+                    data = response.json()
+                break
+            elif status == 401:
+                self._fetch_token()
+            elif status == 429:
+                if int(response.headers['retry-after']) == 1: # it's an int so if the secondly limit is hit then it's 1
+                    if (self.next_time_full - datetime.now()).total_seconds() > 0:
+                        sleep((self.next_time_full - datetime.now()).total_seconds())
+                elif self.sleep_on_hourly_limit:
+                    #print(f"hourly limit reached, sleeping for {response.headers['retry-after']} seconds")
+                    sleep(int(response.headers['retry-after']))
+                else:
+                    break
+            else:
+                if int(response.headers['x-secondly-ratelimit-remaining']) == int(response.headers['x-secondly-ratelimit-limit']) - 1:
+                    self.next_time_full = datetime.now() + timedelta(seconds=1.0 - float(response.headers['x-runtime']))
+                try:
+                    data = response.json()
+                except:
+                    data = response._content
+                break
+
+        if token:
+            self.reset_token()
+
+        return (status, data)
 
     # make a GET call to the api
     # url will be appended to the base_url
@@ -31,61 +82,46 @@ class Api42:
     # params are raw params (ex: params={'filter[login]': maperrea})
     # will automatically sleep on secondly limit reached
     # will sleep on hourly limit reached if sleep_on_hourly_limit=True
-    def get(self, url, filter={}, range={}, page={}, sort=None, params={}, sleep_on_hourly_limit=False, fetch_all=True):
+    def get(self, url, filter={}, range={}, page={}, sort=None, params={}, fetch_all=True, Token=None):
         data = []
-        params['page[size]'] = 100
-        params['page[number]'] = 1
+        _params = params
+        _params['page[size]'] = 100
+        _params['page[number]'] = 1
         for k, v in filter.items():
-            params[f"filter[{k}]"] = v
+            _params[f"filter[{k}]"] = v
         if sort:
-            params["sort"] = ",".join(sort)
+            _params["sort"] = ",".join(sort)
         for k, v in range.items():
-            params[f"range[{k}]"] = v
+            _params[f"range[{k}]"] = v
         for k, v in page.items():
-            params[f"page[{k}]"] = v
+            _params[f"page[{k}]"] = v
         while True:
-            response = self.client.get(self.base_url + url, params=params)
-            if response.status_code == 400 or response.status_code == 403 or response.status_code == 404:
-                code = response.status_code
-                try:
-                    data = response.json()
-                except:
-                    data = response._content
-                break
-            elif response.status_code == 401:
-                self.fetch_token()
-            elif response.status_code == 429:
-                if int(response.headers['retry-after']) == 1: # it's an int so if the secondly limit is hit then it's 1
-                    if (next_time_full - datetime.now()).total_seconds() > 0:
-                        sleep((next_time_full - datetime.now()).total_seconds())
-                elif sleep_on_hourly_limit:
-                    #print(f"hourly limit reached, sleeping for {response.headers['retry-after']} seconds")
-                    sleep(int(response.headers['retry-after']))
-                else:
-                    code = response.status_code
-                    break
-            elif response.status_code == 200:
-                if int(response.headers['x-secondly-ratelimit-remaining']) == int(response.headers['x-secondly-ratelimit-limit']) - 1:
-                    next_time_full = datetime.now() + timedelta(seconds=1.0 - float(response.headers['x-runtime']))
-                r = response.json()
+            status, r = self._request("GET", url, params=_params)
+            if status >= 200 and status <= 299:
                 if type(r) != list:
                     data = r
-                    code = 200
                     break
                 data += r
-                if not fetch_all or len(r) < params['page[size]']:
-                    code = 200
+                if not fetch_all or len(r) < _params['page[size]']:
                     break
-                if int(response.headers['x-secondly-ratelimit-remaining']) == 0:
-                    if (next_time_full - datetime.now()).total_seconds() > 0:
-                        #print('sleep')
-                        sleep((next_time_full - datetime.now()).total_seconds())
-                params['page[number]'] += 1
+                _params['page[number]'] += 1
+            else:
+                data = r
+                break
+        return (status, data)
 
-        #python default values are calculated only once and since these are object instances, modifications stay
-        filter.clear()
-        range.clear()
-        page.clear()
-        params.clear()
-        return (code, data)
+    def patch(self, url, json={}, token=None):
+        status, data = self._request("PATCH", url, json=json, token=token)
+        return (status, data)
 
+    def put(self, url, json={}, token=None):
+        status, data = self._request("PUT", url, json=json, token=token)
+        return (status, data)
+
+    def post(self, url, json={}, token=None):
+        status, data = self._request("POST", url, json=json, token=token)
+        return (status, data)
+
+    def delete(self, url, token=None):
+        status, data = self._request("DELETE", url, token=token)
+        return (status, data)

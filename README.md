@@ -17,7 +17,7 @@ Api42(uid, secret, scope='public', base_url='https://api.intra.42.fr')
 - **uid**: your application's uid
 - **secret**: your application's secret
 - **scope**: the scope of the fetched token
-- **base**\_url: the url prepended to the endpoints
+- **base\_url**: the url prepended to the endpoints
 
 #### Get
 
