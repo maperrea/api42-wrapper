@@ -12,17 +12,18 @@ Takes care of:
 #### Init
 
 ```python
-Api42(uid, secret, scope='public', base_url='https://api.intra.42.fr')
+Api42(uid, secret, scope='public', base_url='https://api.intra.42.fr', sleep_on_hourly_limit=False)
 ```
 - **uid**: your application's uid
 - **secret**: your application's secret
 - **scope**: the scope of the fetched token
 - **base\_url**: the url prepended to the endpoints
+- **sleep\_on\_hourly\_limit**: defines if the client should sleep if the hourly limit is reached. If not, it returns a 429
 
 #### Get
 
 ```python
-Api42.get(url, filter={}, range={}, page={}, sort=None, params={}, sleep_on_hourly_limit=False, fetch_all=True)
+Api42.get(url, filter={}, range={}, page={}, sort=None, params={}, fetch_all=True, token=None)
 ```
 
 - **url**: the call endpoint (appended to the base\_url)
@@ -31,8 +32,8 @@ Api42.get(url, filter={}, range={}, page={}, sort=None, params={}, sleep_on_hour
 - **page**: dict, extra url params. key,value pairs become 'page[key]=value'. default: {'size': 100, 'number': 1}
 - **sort**: list, extra url param. becomes 'sort=value1,value2,...'
 - **params**: dict, raw extra params. key,value pairs become 'key=value'
-- **sleep\_on\_hourly\_limit**: defines if the function should sleep if the hourly limit is reached. If not, it returns a 429
 - **fetch\_all**: defines if all pages of data should be fetched or not
+- **token**: defines another token to use for authentification for this call
 
 => return value: (status\_code, json)
 
