@@ -43,11 +43,11 @@ class Api42:
         while True:
             response = self.client.request(method, self.base_url + url, **kwargs)
             status = response.status_code
-            if status == 400 or status == 403 or status == 404:
-                if status == 404:
-                    data = response._content
-                else:
-                    data = response.json()
+            if status == 400 or status == 403 or status == 422:
+                data = response.json()
+                break
+            elif status == 404:
+                data = response._content
                 break
             elif status == 401:
                 self._fetch_token()
@@ -56,7 +56,6 @@ class Api42:
                     if (self.next_time_full - datetime.now()).total_seconds() > 0:
                         sleep((self.next_time_full - datetime.now()).total_seconds())
                 elif self.sleep_on_hourly_limit:
-                    #print(f"hourly limit reached, sleeping for {response.headers['retry-after']} seconds")
                     sleep(int(response.headers['retry-after']))
                 else:
                     break
@@ -74,14 +73,6 @@ class Api42:
 
         return (status, data)
 
-    # make a GET call to the api
-    # url will be appended to the base_url
-    # the key-value pairs for filter, range & page will be transformed as such in the call params:
-    #   filter={key1: value1, key2: value2} => "filter[key1]=value1&filter[key2]=value2"
-    # sort takes a list and will become: "sort=value1,value2,..."
-    # params are raw params (ex: params={'filter[login]': maperrea})
-    # will automatically sleep on secondly limit reached
-    # will sleep on hourly limit reached if sleep_on_hourly_limit=True
     def get(self, url, filter={}, range={}, page={}, sort=None, params={}, fetch_all=True, Token=None):
         data = []
         _params = params
@@ -111,17 +102,17 @@ class Api42:
         return (status, data)
 
     def patch(self, url, json={}, token=None):
-        status, data = self._request("PATCH", url, json=json, token=token)
+        status, data = self._request("PATCH", url, json=json, token=None)
         return (status, data)
 
     def put(self, url, json={}, token=None):
-        status, data = self._request("PUT", url, json=json, token=token)
+        status, data = self._request("PUT", url, json=json, token=None)
         return (status, data)
 
     def post(self, url, json={}, token=None):
-        status, data = self._request("POST", url, json=json, token=token)
+        status, data = self._request("POST", url, json=json, token=None)
         return (status, data)
 
     def delete(self, url, token=None):
-        status, data = self._request("DELETE", url, token=token)
+        status, data = self._request("DELETE", url, token=None)
         return (status, data)

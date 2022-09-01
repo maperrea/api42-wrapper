@@ -37,6 +37,26 @@ Api42.get(url, filter={}, range={}, page={}, sort=None, params={}, fetch_all=Tru
 
 => return value: (status\_code, json)
 
+#### PATCH, PUT, POST
+
+```python
+Api42.[patch|put|post](url, json={}, token=None)
+```
+- **url**: the call endpoint (appended to the base\_url)
+- **json**: dict, data to be sent in the body a json
+- **token**: defines another token to use for authentification for this call
+
+=> return value: (status\_code, json)
+
+#### DELETE
+```python
+Api42.delete(url, token=None)
+```
+- **url**: the call endpoint (appended to the base\_url)
+- **token**: defines another token to use for authentification for this call
+
+=> return value: (status\_code, json)
+
 #### Example
 
 ```python
@@ -46,3 +66,7 @@ Api42.get(url, filter={}, range={}, page={}, sort=None, params={}, fetch_all=Tru
 >>> len(data)
 575
 ```
+
+### Future improvements
+
+- Add functions to help with the web application flow
