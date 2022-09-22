@@ -20,7 +20,7 @@ Api42(uid, secret, scope='public', base_url='https://api.intra.42.fr', sleep_on_
 - **base\_url**: the url prepended to the endpoints
 - **sleep\_on\_hourly\_limit**: defines if the client should sleep if the hourly limit is reached. If not, it returns a 429
 
-#### Get
+#### GET
 
 ```python
 Api42.get(url, filter={}, range={}, page={}, sort=None, params={}, fetch_all=True, token=None)
@@ -56,6 +56,22 @@ Api42.delete(url, token=None)
 - **token**: defines another token to use for authentification for this call
 
 => return value: (status\_code, json)
+
+#### authorize
+```python
+Api42.authorize()
+```
+
+=> return value: url to send to user for the oauth2 dialog
+
+#### authorize\_access\_token
+```python
+Api42.authorize_access_token(code, state)
+```
+- **code**: the code provided by the intra redirect
+- **state**: the state provided by the intra redirect
+
+=> return value: the user's access token to use for api calls
 
 #### Example
 
