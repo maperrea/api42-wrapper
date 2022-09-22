@@ -27,6 +27,8 @@ class Api42:
                 'scope': self.scope,
             }
         response = requests.post('https://api.intra.42.fr/oauth/token', params=params)
+        if response.status_code != 200:
+            return None
         self.token = response.json()['access_token']
         self.set_token(response.json()['access_token'])
 
