@@ -1,19 +1,21 @@
 from datetime import datetime, timedelta
 from time import sleep
 import requests
+import random
+import string
 
 class Api42:
 
-    #TODO webapp flow
-
-    def __init__(self, uid, secret, scope='public', base_url='https://api.intra.42.fr', sleep_on_hourly_limit=False):
+    def __init__(self, uid, secret, scope='public', base_url='https://api.intra.42.fr', redirect_uri='', sleep_on_hourly_limit=False):
         self.client = requests.Session()
         self.uid = uid
         self.secret = secret
         self.scope = scope
         self.base_url = base_url
+        self.redirect_uri = redirect_uri
         self.next_time_full = datetime.now() + timedelta(seconds=1)
         self.sleep_on_hourly_limit = sleep_on_hourly_limit
+        self.state = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
         self._fetch_token()
 
     #actually make the call to fetch a token
@@ -24,17 +26,39 @@ class Api42:
                 'client_secret': self.secret,
                 'scope': self.scope,
             }
-        response = requests.post(self.base_url + '/oauth/token', params=params)
+        response = requests.post('https://api.intra.42.fr/oauth/token', params=params)
         self.token = response.json()['access_token']
         self.set_token(response.json()['access_token'])
 
-    #set the header to another token (ex: webapp flow)
+    def _fetch_client_token(self, code, state):
+        params = {
+                'grant_type': 'authorization_code',
+                'client_id': self.uid,
+                'client_secret': self.secret,
+                'code': code,
+                'redirect_uri': self.redirect_uri,
+                'state': state,
+            }
+        response = requests.post('https://api.intra.42.fr/oauth/token', params=params)
+        if response.status_code != 200:
+            return None
+        return response.json()['access_token']
+
+    #set the header to another token
     def set_token(self, token):
-        self.client.headers = {"Authorization": f"BEARER {token}"}
+        self.client.headers = {"Authorization": f"Bearer {token}"}
 
     #reset to the original token, does not make a call (if token has expired it will simply 401)
     def reset_token(self):
         self.set_token(self.token)
+
+    def authorize(self):
+        return f"https://api.intra.42.fr/oauth/authorize?client_id={self.uid}&redirect_uri={self.redirect_uri}&response_type=code&scope={self.scope}&state={self.state}"
+
+    def authorize_access_token(self, code, state):
+        if state != self.state:
+            return None
+        return self._fetch_client_token(code, state)
 
     def _request(self, method, url, token=None, **kwargs):
         if token:
@@ -73,9 +97,9 @@ class Api42:
 
         return (status, data)
 
-    def get(self, url, filter={}, range={}, page={}, sort=None, params={}, fetch_all=True, Token=None):
+    def get(self, url, filter={}, range={}, page={}, sort=None, params={}, fetch_all=True, token=None):
         data = []
-        _params = params
+        _params = params.copy()
         _params['page[size]'] = 100
         _params['page[number]'] = 1
         for k, v in filter.items():
@@ -87,7 +111,7 @@ class Api42:
         for k, v in page.items():
             _params[f"page[{k}]"] = v
         while True:
-            status, r = self._request("GET", url, params=_params)
+            status, r = self._request("GET", url, params=_params, token=token)
             if status >= 200 and status <= 299:
                 if type(r) != list:
                     data = r
@@ -102,17 +126,17 @@ class Api42:
         return (status, data)
 
     def patch(self, url, json={}, token=None):
-        status, data = self._request("PATCH", url, json=json, token=None)
+        status, data = self._request("PATCH", url, json=json, token=token)
         return (status, data)
 
     def put(self, url, json={}, token=None):
-        status, data = self._request("PUT", url, json=json, token=None)
+        status, data = self._request("PUT", url, json=json, token=token)
         return (status, data)
 
     def post(self, url, json={}, token=None):
-        status, data = self._request("POST", url, json=json, token=None)
+        status, data = self._request("POST", url, json=json, token=token)
         return (status, data)
 
     def delete(self, url, token=None):
-        status, data = self._request("DELETE", url, token=None)
+        status, data = self._request("DELETE", url, token=token)
         return (status, data)
