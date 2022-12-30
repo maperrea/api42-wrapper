@@ -6,7 +6,7 @@ import string
 
 class Api42:
 
-    def __init__(self, uid, secret, scope='public', base_url='https://api.intra.42.fr', redirect_uri='', sleep_on_hourly_limit=False, decorator=None):
+    def __init__(self, uid, secret, scope='public', base_url='https://api.intra.42.fr', redirect_uri='', sleep_on_hourly_limit=False):
         self.client = requests.Session()
         self.uid = uid
         self.secret = secret
@@ -17,14 +17,6 @@ class Api42:
         self.sleep_on_hourly_limit = sleep_on_hourly_limit
         self.state = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
         self._fetch_token()
-        self.decorator = decorator
-
-    def _decorator(function):
-        def exec():
-            if self.decorator:
-                return self.decorator(function)
-            return function
-        return exec
 
     #actually make the call to fetch a token
     def _fetch_token(self):
@@ -70,7 +62,6 @@ class Api42:
             return None
         return self._fetch_client_token(code, state)
 
-    @_decorator
     def _request(self, method, url, token=None, **kwargs):
         if token:
             self.set_token(token)
