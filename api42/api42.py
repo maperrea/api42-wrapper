@@ -19,8 +19,8 @@ class Api42:
         self._fetch_token()
         self.decorator = decorator
 
-    def _decorator():
-        def exec(function):
+    def _decorator(function):
+        def exec():
             if self.decorator:
                 return self.decorator(function)
             return function
