@@ -84,6 +84,7 @@ class Api42:
                 elif self.sleep_on_hourly_limit:
                     sleep(int(response.headers['retry-after']))
                 else:
+                    data = response._content
                     break
             else:
                 if int(response.headers['x-secondly-ratelimit-remaining']) == int(response.headers['x-secondly-ratelimit-limit']) - 1:
