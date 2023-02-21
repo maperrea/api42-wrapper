@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from time import sleep
+from base64 import urlsafe_b64encode, urlsafe_b64decode
 import requests
 import random
 import string
@@ -15,7 +16,7 @@ class Api42:
         self.redirect_uri = redirect_uri
         self.next_time_full = datetime.now() + timedelta(seconds=1)
         self.sleep_on_hourly_limit = sleep_on_hourly_limit
-        self.state = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
+        self.states = {}
         self._fetch_token()
 
     #actually make the call to fetch a token
@@ -54,12 +55,15 @@ class Api42:
     def reset_token(self):
         self.set_token(self.token)
 
-    def authorize(self):
-        return f"https://api.intra.42.fr/oauth/authorize?client_id={self.uid}&redirect_uri={self.redirect_uri}&response_type=code&scope={self.scope}&state={self.state}"
+    def authorize(self, key, redirect_uri=None):
+        state = ''.join(random.choices(string.ascii_letters + string.digits, k=64))
+        self.states[key] = state
+        return f"https://api.intra.42.fr/oauth/authorize?client_id={self.uid}&redirect_uri={redirect_uri if redirect_uri else self.redirect_uri}&response_type=code&scope={self.scope}&state={state}"
 
-    def authorize_access_token(self, code, state):
-        if state != self.state:
+    def authorize_access_token(self, key, code, state):
+        if key not in self.states or self.states[key] != state:
             return None
+        self.states.pop(key)
         return self._fetch_client_token(code, state)
 
     def _request(self, method, url, token=None, **kwargs):
