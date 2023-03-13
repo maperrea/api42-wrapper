@@ -90,6 +90,9 @@ class Api42:
                 else:
                     data = response._content
                     break
+            elif status == 502:
+                    data = response._content
+                    break
             else:
                 if int(response.headers['x-secondly-ratelimit-remaining']) == int(response.headers['x-secondly-ratelimit-limit']) - 1:
                     self.next_time_full = datetime.now() + timedelta(seconds=1.0 - float(response.headers['x-runtime']))
