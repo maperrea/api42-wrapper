@@ -90,7 +90,7 @@ class Api42:
                 else:
                     data = response._content
                     break
-            elif status == 502:
+            elif status >= 400:
                     data = response._content
                     break
             else:
