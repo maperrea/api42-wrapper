@@ -57,22 +57,6 @@ Api42.delete(url, token=None)
 
 => return value: (status\_code, json)
 
-#### authorize
-```python
-Api42.authorize()
-```
-
-=> return value: url to send to user for the oauth2 dialog
-
-#### authorize\_access\_token
-```python
-Api42.authorize_access_token(code, state)
-```
-- **code**: the code provided by the intra redirect
-- **state**: the state provided by the intra redirect
-
-=> return value: the user's access token to use for api calls
-
 #### Example
 
 ```python
@@ -83,6 +67,36 @@ Api42.authorize_access_token(code, state)
 575
 ```
 
-### Future improvements
+### Web Applications Flow
 
-- Add functions to help with the web application flow
+#### authorize
+```python
+Api42.authorize(key, redirect_uri=None)
+```
+
+- **key**: key uniquely identifying a user. ex for django: ```request.session.session_key```
+- **redirect_uri**: custom redirect uri to use for this call
+
+=> return value: url to send to user for the oauth2 dialog
+
+#### authorize\_access\_token
+```python
+Api42.authorize_access_token(key, code, state)
+```
+
+- **key**: key uniquely identifying a user. Same as for authorize. Used for state verification.
+- **code**: the code provided by the intra redirect
+- **state**: the state provided by the intra redirect
+
+=> return value: the user's access token to use for api calls
+
+#### Example
+
+- for django:
+```python
+def authenticate(request):
+    return redirect(api42.authorize(key=request.session.session_key))
+
+def authorize(request):
+    token = api42.authorize_access_token(key=request.session.session_key, code=request.GET.get('code', default=None), state=request.GET.get('state', default=None))
+```
