@@ -147,6 +147,6 @@ class Api42:
         status, data = self._request("POST", url, json=json, token=token)
         return (status, data)
 
-    def delete(self, url, token=None):
-        status, data = self._request("DELETE", url, token=token)
+    def delete(self, url, json={}, token=None):
+        status, data = self._request("DELETE", url, json=json, token=token)
         return (status, data)
