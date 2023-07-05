@@ -31,11 +31,11 @@ class Api42:
                 'client_secret': self.secret,
                 'scope': self.scope,
             }
-        if hook_token and pre_hook:
-            pre_hook('POST', 'https://api.intra.42.fr/oauth/token',  params)
+        if self.hook_token and self.pre_hook:
+            self.pre_hook('POST', 'https://api.intra.42.fr/oauth/token',  params)
         response = requests.post('https://api.intra.42.fr/oauth/token', params=params)
-        if hook_token and post_hook:
-            pre_hook('POST', 'https://api.intra.42.fr/oauth/token',  params, response)
+        if self.hook_token and self.post_hook:
+            self.post_hook('POST', 'https://api.intra.42.fr/oauth/token',  params, response)
         if response.status_code >= 400:
             return None
         self.token = response.json()['access_token']
@@ -50,11 +50,11 @@ class Api42:
                 'redirect_uri': self.redirect_uri,
                 'state': state,
             }
-        if hook_token and pre_hook:
-            pre_hook('POST', 'https://api.intra.42.fr/oauth/token',  params)
+        if self.hook_token and self.pre_hook:
+            self.pre_hook('POST', 'https://api.intra.42.fr/oauth/token',  params)
         response = requests.post('https://api.intra.42.fr/oauth/token', params=params)
-        if hook_token and post_hook:
-            pre_hook('POST', 'https://api.intra.42.fr/oauth/token',  params, response)
+        if self.hook_token and self.post_hook:
+            self.post_hook('POST', 'https://api.intra.42.fr/oauth/token',  params, response)
         if response.status_code != 200:
             return None
         return response.json()['access_token']
