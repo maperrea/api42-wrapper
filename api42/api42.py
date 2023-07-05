@@ -7,7 +7,8 @@ import string
 
 class Api42:
 
-    def __init__(self, uid, secret, scope='public', base_url='https://api.intra.42.fr', redirect_uri='', sleep_on_hourly_limit=False):
+
+    def __init__(self, uid, secret, scope='public', base_url='https://api.intra.42.fr', redirect_uri='', sleep_on_hourly_limit=False, pre_hook=None, post_hook=None, hook_token=False):
         self.client = requests.Session()
         self.uid = uid
         self.secret = secret
@@ -16,6 +17,9 @@ class Api42:
         self.redirect_uri = redirect_uri
         self.next_time_full = datetime.now() + timedelta(seconds=1)
         self.sleep_on_hourly_limit = sleep_on_hourly_limit
+        self.pre_hook = pre_hook
+        self.post_hook = post_hook
+        self.hook_token = hook_token
         self.states = {}
         self._fetch_token()
 
@@ -27,7 +31,11 @@ class Api42:
                 'client_secret': self.secret,
                 'scope': self.scope,
             }
+        if hook_token and pre_hook:
+            pre_hook('POST', 'https://api.intra.42.fr/oauth/token',  params)
         response = requests.post('https://api.intra.42.fr/oauth/token', params=params)
+        if hook_token and post_hook:
+            pre_hook('POST', 'https://api.intra.42.fr/oauth/token',  params, response)
         if response.status_code >= 400:
             return None
         self.token = response.json()['access_token']
@@ -42,7 +50,11 @@ class Api42:
                 'redirect_uri': self.redirect_uri,
                 'state': state,
             }
+        if hook_token and pre_hook:
+            pre_hook('POST', 'https://api.intra.42.fr/oauth/token',  params)
         response = requests.post('https://api.intra.42.fr/oauth/token', params=params)
+        if hook_token and post_hook:
+            pre_hook('POST', 'https://api.intra.42.fr/oauth/token',  params, response)
         if response.status_code != 200:
             return None
         return response.json()['access_token']
@@ -71,7 +83,11 @@ class Api42:
             self.set_token(token)
 
         while True:
+            if self.pre_hook:
+                self.pre_hook(method, self.base_url + url, kwargs)
             response = self.client.request(method, self.base_url + url, **kwargs)
+            if self.post_hook:
+                self.post_hook(method, self.base_url + url, kwargs, response)
             status = response.status_code
             if status == 400 or status == 403 or status == 422:
                 data = response.json()

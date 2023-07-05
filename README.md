@@ -12,13 +12,17 @@ Takes care of:
 #### Init
 
 ```python
-Api42(uid, secret, scope='public', base_url='https://api.intra.42.fr', sleep_on_hourly_limit=False)
+Api42(uid, secret, scope='public', base_url='https://api.intra.42.fr', redirect_uri='', sleep_on_hourly_limit=False, pre_hook=None, post_hook=None, hook_token=False)
 ```
 - **uid**: your application's uid
 - **secret**: your application's secret
 - **scope**: the scope of the fetched token
 - **base\_url**: the url prepended to the endpoints
+- **redirect_uri**: The uri to redirect to after web based authentication
 - **sleep\_on\_hourly\_limit**: defines if the client should sleep if the hourly limit is reached. If not, it returns a 429
+- **pre_hook**: hook function called right before the actual api call. takes following parameters: ```(method: string, url: string, params: dict)```
+- **post_hook**: hook function called right after the actual api call. takes the same parameters as the pre_hook, plus the response object (as returned by ```requests```).
+- **hook_token**: if ```True```, hooks are also called when fetching tokens
 
 #### GET
 
