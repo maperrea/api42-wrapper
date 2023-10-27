@@ -21,7 +21,6 @@ class Api42:
         self.post_hook = post_hook
         self.hook_token = hook_token
         self.states = {}
-        self._fetch_token()
 
     #actually make the call to fetch a token
     def _fetch_token(self):
