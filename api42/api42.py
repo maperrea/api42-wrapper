@@ -104,8 +104,8 @@ class Api42:
         return self._fetch_client_token(code, state)
 
     def _request(self, method, url, token=None, **kwargs):
-        if (m := re.match("/v3/(\w*)/v2/(.*)", url)):
-            url = f"https://{m.group(1)}.42.fr/api/v2/{m.group(2)}"
+        if (m := re.match("/v3/(\w*)/(\w*)/(.*)", url)):
+            url = f"https://{m.group(1)}.42.fr/api/{m.group(2)}/{m.group(3)}"
             v3 = True
             if not token:
                 token = self.tokenv3
