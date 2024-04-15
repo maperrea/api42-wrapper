@@ -53,7 +53,7 @@ Api42(uid, secret, scope='public', redirect_uri='', sleep_on_hourly_limit=False,
 Api42.get(url, filter={}, range={}, page={}, sort=None, params={}, fetch_all=True, token=None)
 ```
 
-- **url**: the call endpoint (appended to the base\_url)
+- **url**: the call endpoint
 - **filter**: dict, extra url params. key,value pairs become 'filter[key]=value'
 - **range**: dict, extra url params. key,value pairs become 'range[key]=value'
 - **page**: dict, extra url params. key,value pairs become 'page[key]=value'. default: {'size': 100, 'number': 1}
@@ -69,7 +69,7 @@ Api42.get(url, filter={}, range={}, page={}, sort=None, params={}, fetch_all=Tru
 ```python
 Api42.[patch|put|post](url, json={}, token=None)
 ```
-- **url**: the call endpoint (appended to the base\_url)
+- **url**: the call endpoint
 - **json**: dict, data to be sent in the body a json
 - **token**: defines another token to use for authentification for this call
 
@@ -79,7 +79,7 @@ Api42.[patch|put|post](url, json={}, token=None)
 ```python
 Api42.delete(url, token=None)
 ```
-- **url**: the call endpoint (appended to the base\_url)
+- **url**: the call endpoint
 - **token**: defines another token to use for authentification for this call
 
 => return value: (status\_code, json)
@@ -94,7 +94,7 @@ Api42.delete(url, token=None)
 575
 ```
 
-### Web Applications Flow
+### Web Application Flow
 
 #### authorize
 ```python

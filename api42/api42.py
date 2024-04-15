@@ -6,6 +6,23 @@ import random
 import string
 import re
 
+def _detect_v3(func):
+
+    def wrap(self, url, *, token=None, **kwargs):
+        if (m := re.match("/v3/(\w*)/(\w*)/(.*)", url)):
+            url = f"https://{m.group(1)}.42.fr/api/{m.group(2)}/{m.group(3)}"
+            v3 = True
+            if not token:
+                token = self.tokenv3
+        else:
+            url = self.base_url + url
+            v3 = False
+            if not token:
+                token = self.token
+        return func(self, url, token=token, v3=v3, **kwargs)
+
+    return wrap
+
 class Api42:
 
     def __init__(self, uid='', secret='', uidv3='', secretv3='', username='', password='', scope='public', redirect_uri='', sleep_on_hourly_limit=False, pre_hook=None, post_hook=None, hook_token=False):
@@ -103,24 +120,14 @@ class Api42:
         self.states.pop(key)
         return self._fetch_client_token(code, state)
 
-    def _request(self, method, url, token=None, **kwargs):
-        if (m := re.match("/v3/(\w*)/(\w*)/(.*)", url)):
-            url = f"https://{m.group(1)}.42.fr/api/{m.group(2)}/{m.group(3)}"
-            v3 = True
-            if not token:
-                token = self.tokenv3
-        else:
-            url = self.base_url + url
-            v3 = False
-            if not token:
-                token = self.token
+    def _request(self, method, url, token=None, v3=False, **kwargs):
 
         while True:
             if self.pre_hook:
                 self.pre_hook(method, url, kwargs)
             response = requests.request(method, url, headers={"Authorization": f"Bearer {token}"}, **kwargs)
             if self.post_hook:
-                self.post_hook(method, url, kwargs, response)
+                self.post_hook(method, url, kwargs, response, response._content)
             status = response.status_code
             if status == 400 or status == 403 or status == 422:
                 data = response.json()
@@ -153,7 +160,7 @@ class Api42:
 
         return (status, data)
 
-    def get(self, url, filter={}, range={}, page={}, sort=None, params={}, fetch_all=True, token=None):
+    def _getv2(self, url, *, filter={}, range={}, page={}, sort=None, params={}, fetch_all=True, token=None):
         data = []
         _params = params.copy()
         _params['page[size]'] = 100
@@ -167,7 +174,7 @@ class Api42:
         for k, v in page.items():
             _params[f"page[{k}]"] = v
         while True:
-            status, r = self._request("GET", url, params=_params, token=token)
+            status, r = self._request("GET", url, params=_params, token=token, v3=False)
             if status >= 200 and status <= 299:
                 if type(r) != list:
                     data = r
@@ -180,19 +187,51 @@ class Api42:
                 data = r
                 break
         return (status, data)
-
-    def patch(self, url, json={}, token=None):
-        status, data = self._request("PATCH", url, json=json, token=token)
+    
+    def _getv3(self, url, *, params={}, fetch_all=True, token=None):
+        data = []
+        _params = {'size': 100, 'page': 1}
+        for k, v in params.items(): #allows override of size/number
+            _params[k] = v
+        while True:
+            status, r = self._request("GET", url, params=_params, token=token, v3=True)
+            if status >= 200 and status <= 299:
+                if 'items' not in r:
+                    data = r
+                    break
+                data += r['items']
+                if not fetch_all or r['page'] == r['pages']:
+                    break
+                _params['page'] += 1
+            else:
+                data = r
+                break
         return (status, data)
 
-    def put(self, url, json={}, token=None):
-        status, data = self._request("PUT", url, json=json, token=token)
+
+    @_detect_v3
+    def get(self, url, *, filter={}, range={}, page={}, sort=None, params={}, fetch_all=True, token=None, v3=False):
+        if v3:
+            return self._getv3(url, params=params, fetch_all=fetch_all, token=token)
+        else:
+            return self._getv2(url, filter=filter, range=range, page=page, sort=sort, params=params, fetch_all=fetch_all, token=token)
+
+    @_detect_v3
+    def patch(self, url, *, json={}, token=None, v3=False):
+        status, data = self._request("PATCH", url, json=json, token=token, v3=v3)
         return (status, data)
 
-    def post(self, url, json={}, token=None):
-        status, data = self._request("POST", url, json=json, token=token)
+    @_detect_v3
+    def put(self, url, *, json={}, token=None, v3=False):
+        status, data = self._request("PUT", url, json=json, token=token, v3=v3)
+        return (status, data) 
+
+    @_detect_v3
+    def post(self, url, *, json={}, token=None, v3=False):
+        status, data = self._request("POST", url, json=json, token=token, v3=v3)
         return (status, data)
 
-    def delete(self, url, json={}, token=None):
-        status, data = self._request("DELETE", url, json=json, token=token)
+    @_detect_v3
+    def delete(self, url, *, json={}, token=None, v3=False):
+        status, data = self._request("DELETE", url, json=json, token=token, v3=v3)
         return (status, data)
