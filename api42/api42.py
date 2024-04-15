@@ -1,19 +1,25 @@
 from datetime import datetime, timedelta
 from time import sleep
-from base64 import urlsafe_b64encode, urlsafe_b64decode
+from base64 import b64encode
 import requests
 import random
 import string
+import re
 
 class Api42:
 
-
-    def __init__(self, uid, secret, scope='public', base_url='https://api.intra.42.fr', redirect_uri='', sleep_on_hourly_limit=False, pre_hook=None, post_hook=None, hook_token=False):
+    def __init__(self, uid='', secret='', uidv3='', secretv3='', username='', password='', scope='public', redirect_uri='', sleep_on_hourly_limit=False, pre_hook=None, post_hook=None, hook_token=False):
         self.client = requests.Session()
         self.uid = uid
         self.secret = secret
+        self.uidv3 = uidv3
+        self.secretv3 = secretv3
+        self.username = username
+        self.password = password
         self.scope = scope
-        self.base_url = base_url
+        self.base_url = 'https://api.intra.42.fr'
+        self.tokenv2_url = 'https://api.intra.42.fr/oauth/token'
+        self.tokenv3_url = 'https://auth.42.fr/auth/realms/staff-42/protocol/openid-connect/token'
         self.redirect_uri = redirect_uri
         self.next_time_full = datetime.now() + timedelta(seconds=1)
         self.sleep_on_hourly_limit = sleep_on_hourly_limit
@@ -22,9 +28,16 @@ class Api42:
         self.hook_token = hook_token
         self.states = {}
         self.token = None
+        self.tokenv3 = None
 
     #actually make the call to fetch a token
-    def _fetch_token(self):
+    def _fetch_token(self, v3):
+        if v3:
+            return self._fetch_token_v3()
+        else:
+            return self._fetch_token_v2()
+
+    def _fetch_token_v2(self):
         params = {
                 'grant_type': 'client_credentials',
                 'client_id': self.uid,
@@ -32,14 +45,34 @@ class Api42:
                 'scope': self.scope,
             }
         if self.hook_token and self.pre_hook:
-            self.pre_hook('POST', 'https://api.intra.42.fr/oauth/token',  params)
-        response = requests.post('https://api.intra.42.fr/oauth/token', params=params)
+            self.pre_hook('POST', self.tokenv2_url,  params)
+        response = requests.post(self.tokenv2_url, params=params)
         if self.hook_token and self.post_hook:
-            self.post_hook('POST', 'https://api.intra.42.fr/oauth/token',  params, response)
+            self.post_hook('POST', self.tokenv2_url,  params, response)
         if response.status_code >= 400:
             return None
         self.token = response.json()['access_token']
-        self.set_token(response.json()['access_token'])
+        return self.token
+
+    def _fetch_token_v3(self):
+        headers = {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Authorization': b"Basic " + b64encode(bytes(self.uidv3 + ':' + self.secretv3, encoding='utf-8'))
+            }
+        params = {
+                'grant_type': 'password',
+                'username': self.username,
+                'password': self.password,
+            }
+        if self.hook_token and self.pre_hook:
+            self.pre_hook('POST', self.tokenv3_url, headers, params)
+        response = requests.post(self.tokenv3_url, headers=headers, data=params)
+        if self.hook_token and self.post_hook:
+            self.post_hook('POST', self.tokenv3_url, headers, params, response._content)
+        if response.status_code >= 400:
+            return None
+        self.tokenv3 = response.json()['access_token']
+        return self.tokenv3
 
     def _fetch_client_token(self, code, state):
         params = {
@@ -59,14 +92,6 @@ class Api42:
             return None
         return response.json()['access_token']
 
-    #set the header to another token
-    def set_token(self, token):
-        self.client.headers = {"Authorization": f"Bearer {token}"}
-
-    #reset to the original token, does not make a call (if token has expired it will simply 401)
-    def reset_token(self):
-        self.set_token(self.token)
-
     def authorize(self, key, redirect_uri=None):
         state = ''.join(random.choices(string.ascii_letters + string.digits, k=64))
         self.states[key] = state
@@ -79,15 +104,23 @@ class Api42:
         return self._fetch_client_token(code, state)
 
     def _request(self, method, url, token=None, **kwargs):
-        if token:
-            self.set_token(token)
+        if (m := re.match("/v3/(\w*)/v2/(.*)", url)):
+            url = f"https://{m.group(1)}.42.fr/api/v2/{m.group(2)}"
+            v3 = True
+            if not token:
+                token = self.tokenv3
+        else:
+            url = self.base_url + url
+            v3 = False
+            if not token:
+                token = self.token
 
         while True:
             if self.pre_hook:
-                self.pre_hook(method, self.base_url + url, kwargs)
-            response = self.client.request(method, self.base_url + url, **kwargs)
+                self.pre_hook(method, url, kwargs)
+            response = requests.request(method, url, headers={"Authorization": f"Bearer {token}"}, **kwargs)
             if self.post_hook:
-                self.post_hook(method, self.base_url + url, kwargs, response)
+                self.post_hook(method, url, kwargs, response)
             status = response.status_code
             if status == 400 or status == 403 or status == 422:
                 data = response.json()
@@ -96,7 +129,7 @@ class Api42:
                 data = response._content
                 break
             elif status == 401:
-                self._fetch_token()
+                token = self._fetch_token(v3)
             elif status == 429:
                 if int(response.headers['retry-after']) == 1: # it's an int so if the secondly limit is hit then it's 1
                     if (self.next_time_full - datetime.now()).total_seconds() > 0:
@@ -110,16 +143,13 @@ class Api42:
                     data = response._content
                     break
             else:
-                if int(response.headers['x-secondly-ratelimit-remaining']) == int(response.headers['x-secondly-ratelimit-limit']) - 1:
+                if not v3 and int(response.headers['x-secondly-ratelimit-remaining']) == int(response.headers['x-secondly-ratelimit-limit']) - 1:
                     self.next_time_full = datetime.now() + timedelta(seconds=1.0 - float(response.headers['x-runtime']))
                 try:
                     data = response.json()
                 except:
                     data = response._content
                 break
-
-        if token:
-            self.reset_token()
 
         return (status, data)
 
