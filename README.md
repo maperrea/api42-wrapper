@@ -7,17 +7,40 @@ Takes care of:
 * sleeping on request limit reached
 * formatting the url & parameters
 
+--- 
+
+## V3 Update
+
+### Init:
+
+New (optional) parameters have been added!
+- **uidv3**: your OIDC\_RP\_CLIENT\_ID
+- **secretv3**: your OIDC\_RP\_CLIENT\_SECRET
+- **username**: your username
+- **password**: your password
+
+### Usage of v3 endpoints:
+
+When making a call on a v3 service, transform the url parameter like so: \
+```https://<service>.42.fr/api/<version>/<url>``` \
+to \
+```/v3/<service>/<version>/<url>``` \
+The wrapper will take care of the rest
+
+For v2 urls, simply use the ```/v2/<url>``` form
+
+---
+
 ### Usage:
 
 #### Init
 
 ```python
-Api42(uid, secret, scope='public', base_url='https://api.intra.42.fr', redirect_uri='', sleep_on_hourly_limit=False, pre_hook=None, post_hook=None, hook_token=False)
+Api42(uid, secret, scope='public', redirect_uri='', sleep_on_hourly_limit=False, pre_hook=None, post_hook=None, hook_token=False)
 ```
 - **uid**: your application's uid
 - **secret**: your application's secret
 - **scope**: the scope of the fetched token
-- **base\_url**: the url prepended to the endpoints
 - **redirect_uri**: The uri to redirect to after web based authentication
 - **sleep\_on\_hourly\_limit**: defines if the client should sleep if the hourly limit is reached. If not, it returns a 429
 - **pre_hook**: hook function called right before the actual api call. takes following parameters: ```(method: string, url: string, params: dict)```
