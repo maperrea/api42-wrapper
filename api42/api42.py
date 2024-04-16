@@ -32,7 +32,6 @@ class Api42:
             super().__init__(message)
 
     def __init__(self, uid='', secret='', uidv3='', secretv3='', username='', password='', scope='public', redirect_uri='', sleep_on_hourly_limit=False, pre_hook=None, post_hook=None, hook_token=False):
-        self.client = requests.Session()
         self.uid = uid
         self.secret = secret
         self.uidv3 = uidv3
