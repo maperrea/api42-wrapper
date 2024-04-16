@@ -25,7 +25,8 @@ When making a call on a v3 service, transform the url parameter like so: \
 ```https://<service>.42.fr/api/<version>/<url>``` \
 to \
 ```/v3/<service>/<version>/<url>``` \
-The wrapper will take care of the rest
+The wrapper will take care of the rest \
+(inspired by [this notion page](https://www.notion.so/ft42/Intra-V3-API-Gateway-7c26edbdcb1e4b7984f31b617b8f1748?pvs=4), but what's written on it doesn't work, at least for now)
 
 For v2 urls, simply use the ```/v2/<url>``` form
 
@@ -36,10 +37,14 @@ For v2 urls, simply use the ```/v2/<url>``` form
 #### Init
 
 ```python
-Api42(uid, secret, scope='public', redirect_uri='', sleep_on_hourly_limit=False, pre_hook=None, post_hook=None, hook_token=False)
+Api42(uid, secret, uidv3, secretv3, username, password, scope='public', redirect_uri='', sleep_on_hourly_limit=False, pre_hook=None, post_hook=None, hook_token=False)
 ```
 - **uid**: your application's uid
 - **secret**: your application's secret
+- **uidv3**: your OIDC\_RP\_CLIENT\_ID
+- **secretv3**: your OIDC\_RP\_CLIENT\_SECRET
+- **username**: your username
+- **password**: your password
 - **scope**: the scope of the fetched token
 - **redirect_uri**: The uri to redirect to after web based authentication
 - **sleep\_on\_hourly\_limit**: defines if the client should sleep if the hourly limit is reached. If not, it returns a 429
@@ -54,10 +59,10 @@ Api42.get(url, filter={}, range={}, page={}, sort=None, params={}, fetch_all=Tru
 ```
 
 - **url**: the call endpoint
-- **filter**: dict, extra url params. key,value pairs become 'filter[key]=value'
-- **range**: dict, extra url params. key,value pairs become 'range[key]=value'
-- **page**: dict, extra url params. key,value pairs become 'page[key]=value'. default: {'size': 100, 'number': 1}
-- **sort**: list, extra url param. becomes 'sort=value1,value2,...'
+- **filter**: dict, extra url params. key,value pairs become 'filter[key]=value' (v2 only)
+- **range**: dict, extra url params. key,value pairs become 'range[key]=value' (v2 only)
+- **page**: dict, extra url params. key,value pairs become 'page[key]=value'. default: {'size': 100, 'number': 1} (v2 only)
+- **sort**: list, extra url param. becomes 'sort=value1,value2,...' (v2 only)
 - **params**: dict, raw extra params. key,value pairs become 'key=value'
 - **fetch\_all**: defines if all pages of data should be fetched or not
 - **token**: defines another token to use for authentification for this call
