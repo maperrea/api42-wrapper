@@ -25,6 +25,12 @@ def _detect_v3(func):
 
 class Api42:
 
+    class TokenFetchException(Exception):
+        """Exception raised when an error happens during token fetch"""
+
+        def __init__(self, message="An error happened durign token fetch"):
+            super().__init__(message)
+
     def __init__(self, uid='', secret='', uidv3='', secretv3='', username='', password='', scope='public', redirect_uri='', sleep_on_hourly_limit=False, pre_hook=None, post_hook=None, hook_token=False):
         self.client = requests.Session()
         self.uid = uid
@@ -67,7 +73,7 @@ class Api42:
         if self.hook_token and self.post_hook:
             self.post_hook('POST', self.tokenv2_url,  params, response)
         if response.status_code >= 400:
-            return None
+            raise self.TokenFetchException(response._content)
         self.token = response.json()['access_token']
         return self.token
 
@@ -87,7 +93,7 @@ class Api42:
         if self.hook_token and self.post_hook:
             self.post_hook('POST', self.tokenv3_url, headers | params, response)
         if response.status_code >= 400:
-            return None
+            raise self.TokenFetchException(response._content)
         self.tokenv3 = response.json()['access_token']
         return self.tokenv3
 
