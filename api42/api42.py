@@ -82,10 +82,10 @@ class Api42:
                 'password': self.password,
             }
         if self.hook_token and self.pre_hook:
-            self.pre_hook('POST', self.tokenv3_url, headers, params)
+            self.pre_hook('POST', self.tokenv3_url, headers | params)
         response = requests.post(self.tokenv3_url, headers=headers, data=params)
         if self.hook_token and self.post_hook:
-            self.post_hook('POST', self.tokenv3_url, headers, params, response._content)
+            self.post_hook('POST', self.tokenv3_url, headers | params, response)
         if response.status_code >= 400:
             return None
         self.tokenv3 = response.json()['access_token']
@@ -127,7 +127,7 @@ class Api42:
                 self.pre_hook(method, url, kwargs)
             response = requests.request(method, url, headers={"Authorization": f"Bearer {token}"}, **kwargs)
             if self.post_hook:
-                self.post_hook(method, url, kwargs, response, response._content)
+                self.post_hook(method, url, kwargs, response)
             status = response.status_code
             if status == 400 or status == 403 or status == 422:
                 data = response.json()
