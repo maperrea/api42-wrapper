@@ -37,7 +37,7 @@ For v2 urls, simply use the ```/v2/<url>``` form
 #### Init
 
 ```python
-Api42(uid, secret, uidv3, secretv3, username, password, scope='public', redirect_uri='', sleep_on_hourly_limit=False, pre_hook=None, post_hook=None, hook_token=False)
+Api42(uid, secret, uidv3, secretv3, username, password, totp, scope='public', redirect_uri='', sleep_on_hourly_limit=False, pre_hook=None, post_hook=None, hook_token=False)
 ```
 - **uid**: your application's uid
 - **secret**: your application's secret
@@ -45,6 +45,7 @@ Api42(uid, secret, uidv3, secretv3, username, password, scope='public', redirect
 - **secretv3**: your OIDC\_RP\_CLIENT\_SECRET
 - **username**: your username
 - **password**: your password
+- **totp**: your TOTP code (2FA)
 - **scope**: the scope of the fetched token
 - **redirect_uri**: The uri to redirect to after web based authentication
 - **sleep\_on\_hourly\_limit**: defines if the client should sleep if the hourly limit is reached. If not, it returns a 429
