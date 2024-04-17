@@ -31,13 +31,14 @@ class Api42:
         def __init__(self, message="An error happened durign token fetch"):
             super().__init__(message)
 
-    def __init__(self, uid='', secret='', uidv3='', secretv3='', username='', password='', scope='public', redirect_uri='', sleep_on_hourly_limit=False, pre_hook=None, post_hook=None, hook_token=False):
+    def __init__(self, uid='', secret='', uidv3='', secretv3='', username='', password='', totp='', scope='public', redirect_uri='', sleep_on_hourly_limit=False, pre_hook=None, post_hook=None, hook_token=False):
         self.uid = uid
         self.secret = secret
         self.uidv3 = uidv3
         self.secretv3 = secretv3
         self.username = username
         self.password = password
+        self.totp = totp
         self.scope = scope
         self.base_url = 'https://api.intra.42.fr'
         self.tokenv2_url = 'https://api.intra.42.fr/oauth/token'
@@ -85,6 +86,7 @@ class Api42:
                 'grant_type': 'password',
                 'username': self.username,
                 'password': self.password,
+                'totp': self.totp,
             }
         if self.hook_token and self.pre_hook:
             self.pre_hook('POST', self.tokenv3_url, headers | params)
