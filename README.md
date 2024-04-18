@@ -18,6 +18,7 @@ New (optional) parameters have been added!
 - **secretv3**: your OIDC\_RP\_CLIENT\_SECRET
 - **username**: your username
 - **password**: your password
+- **totp**: a totp if you have 2fa
 
 ### Usage of v3 endpoints:
 
@@ -30,6 +31,13 @@ The wrapper will take care of the rest \
 
 For v2 urls, simply use the ```/v2/<url>``` form
 
+### 2FA:
+
+If you provide a totp on init, the wrapper enters "2fa mode" \
+In this mode, if the refresh token has expired and no valid totp is present, the wrapper will raise an exception. \
+If used in a server, create a period task to regularly call ```Api42.refresh_token``` to keep a valid token. \
+If the refresh token were to expire, you can also provide a new totp to the ```refresh_token``` method 
+
 ---
 
 ### Usage:
@@ -37,7 +45,7 @@ For v2 urls, simply use the ```/v2/<url>``` form
 #### Init
 
 ```python
-Api42(uid, secret, uidv3, secretv3, username, password, totp, scope='public', redirect_uri='', sleep_on_hourly_limit=False, pre_hook=None, post_hook=None, hook_token=False)
+Api42(uid='', secret='', uidv3='', secretv3='', username='', password='', totp='', scope='public', redirect_uri='', sleep_on_hourly_limit=False, pre_hook=None, post_hook=None, hook_token=False)
 ```
 - **uid**: your application's uid
 - **secret**: your application's secret
@@ -52,6 +60,13 @@ Api42(uid, secret, uidv3, secretv3, username, password, totp, scope='public', re
 - **pre_hook**: hook function called right before the actual api call. takes following parameters: ```(method: string, url: string, params: dict)```
 - **post_hook**: hook function called right after the actual api call. takes the same parameters as the pre_hook, plus the response object (as returned by ```requests```).
 - **hook_token**: if ```True```, hooks are also called when fetching tokens
+
+#### Refresh token (V3 only)
+
+```python
+Api42.refresh_token(totp='')
+```
+- **totp**: if provided, will be used to fetch  new token. otherwise, simply use the refresh token.
 
 #### GET
 
