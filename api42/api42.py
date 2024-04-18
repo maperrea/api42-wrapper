@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta
 from time import sleep
 from base64 import b64encode
+from datetime import datetime, timedelta, timezone
 import requests
 import random
 import string
@@ -39,6 +39,7 @@ class Api42:
         self.username = username
         self.password = password
         self.totp = totp
+        self.twofa = True if totp else False
         self.scope = scope
         self.base_url = 'https://api.intra.42.fr'
         self.tokenv2_url = 'https://api.intra.42.fr/oauth/token'
@@ -52,6 +53,8 @@ class Api42:
         self.states = {}
         self.token = None
         self.tokenv3 = None
+        self.refresh_tokenv3= None
+        self.refresh_timeout = None 
 
     #actually make the call to fetch a token
     def _fetch_token(self, v3):
@@ -73,16 +76,28 @@ class Api42:
         if self.hook_token and self.post_hook:
             self.post_hook('POST', self.tokenv2_url,  params, response)
         if response.status_code >= 400:
-            raise self.TokenFetchException(response._content)
+            raise self.TokenFetchException(f"{response.status_code}: {response._content}")
         self.token = response.json()['access_token']
         return self.token
 
+
     def _fetch_token_v3(self):
+        refresh = False
+        if self.refresh_tokenv3 and self.refresh_timeout > datetime.now(timezone.utc):
+            refresh = True
+        elif self.twofa and not self.totp:
+            raise self.TokenFetchException("Two-Factor authentication active and no totp provided and refresh_token timed out or is absent")
         headers = {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Authorization': b"Basic " + b64encode(bytes(self.uidv3 + ':' + self.secretv3, encoding='utf-8'))
             }
-        params = {
+        if refresh:
+            params = {
+                'grant_type': 'refresh_token',
+                'refresh_token': self.refresh_tokenv3,
+            }
+        else:
+            params = {
                 'grant_type': 'password',
                 'username': self.username,
                 'password': self.password,
@@ -94,9 +109,17 @@ class Api42:
         if self.hook_token and self.post_hook:
             self.post_hook('POST', self.tokenv3_url, headers | params, response)
         if response.status_code >= 400:
-            raise self.TokenFetchException(response._content)
+            raise self.TokenFetchException(f"{response.status_code}: {response._content}")
         self.tokenv3 = response.json()['access_token']
+        self.refresh_tokenv3 = response.json()['refresh_token']
+        self.refresh_timeout = datetime.now(timezone.utc) + timedelta(seconds=int(response.json()['refresh_expires_in']))
+        self.totp = ''
         return self.tokenv3
+
+    def refresh_token(self, totp=''):
+        if totp:
+            self.totp = totp
+        self._fetch_token_v3()
 
     def _fetch_client_token(self, code, state):
         params = {
@@ -214,7 +237,6 @@ class Api42:
                 data = r
                 break
         return (status, data)
-
 
     @_detect_v3
     def get(self, url, *, filter={}, range={}, page={}, sort=None, params={}, fetch_all=True, token=None, v3=False):
