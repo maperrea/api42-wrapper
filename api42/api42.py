@@ -118,6 +118,7 @@ class Api42:
 
     def refresh_token(self, totp=''):
         if totp:
+            self.twofa = True
             self.totp = totp
         self._fetch_token_v3()
 
