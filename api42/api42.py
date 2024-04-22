@@ -9,7 +9,7 @@ import re
 def _detect_v3(func):
 
     def wrap(self, url, *, token=None, **kwargs):
-        if (m := re.match("/v3/(\w*)/(\w*)/(.*)", url)):
+        if (m := re.match("/v3/([\w\-]*)/(v\d)/(.*)", url)):
             url = f"https://{m.group(1)}.42.fr/api/{m.group(2)}/{m.group(3)}"
             v3 = True
             if not token:
