@@ -8,18 +8,16 @@ import re
 
 def _detect_v3(func):
 
-    def wrap(self, url, *, token=None, **kwargs):
+    def wrap(self, url, **kwargs):
         if (m := re.match("/v3/([\w\-]*)/(v\d)/(.*)", url)):
             url = f"https://{m.group(1)}.42.fr/api/{m.group(2)}/{m.group(3)}"
-            v3 = True
-            if not token:
-                token = self.tokenv3
+            self.v3 = True
+            self.token = self.tokenv3
         else:
             url = self.base_url + url
-            v3 = False
-            if not token:
-                token = self.token
-        return func(self, url, token=token, v3=v3, **kwargs)
+            self.v3 = False
+            self.token = self.tokenv2
+        return func(self, url, **kwargs)
 
     return wrap
 
@@ -52,13 +50,14 @@ class Api42:
         self.hook_token = hook_token
         self.states = {}
         self.token = None
+        self.tokenv2 = None
         self.tokenv3 = None
         self.refresh_tokenv3= None
         self.refresh_timeout = None 
 
     #actually make the call to fetch a token
-    def _fetch_token(self, v3):
-        if v3:
+    def _fetch_token(self):
+        if self.v3:
             return self._fetch_token_v3()
         else:
             return self._fetch_token_v2()
@@ -77,8 +76,8 @@ class Api42:
             self.post_hook('POST', self.tokenv2_url,  params, response)
         if response.status_code >= 400:
             raise self.TokenFetchException(f"{response.status_code}: {response._content}")
-        self.token = response.json()['access_token']
-        return self.token
+        self.tokenv2 = response.json()['access_token']
+        return self.tokenv2
 
 
     def _fetch_token_v3(self):
@@ -151,12 +150,12 @@ class Api42:
         self.states.pop(key)
         return self._fetch_client_token(code, state)
 
-    def _request(self, method, url, token=None, v3=False, **kwargs):
+    def _request(self, method, url, **kwargs):
 
         while True:
             if self.pre_hook:
-                self.pre_hook(method, url, kwargs)
-            response = requests.request(method, url, headers={"Authorization": f"Bearer {token}"}, **kwargs)
+                self.pre_hook(method, url, kwargs | {"Authorization": f"Bearer {self.token}"})
+            response = requests.request(method, url, headers={"Authorization": f"Bearer {self.token}"}, **kwargs)
             if self.post_hook:
                 self.post_hook(method, url, kwargs, response)
             status = response.status_code
@@ -167,7 +166,7 @@ class Api42:
                 data = response._content
                 break
             elif status == 401:
-                token = self._fetch_token(v3)
+                self.token = self._fetch_token()
             elif status == 429:
                 if int(response.headers['retry-after']) == 1: # it's an int so if the secondly limit is hit then it's 1
                     if (self.next_time_full - datetime.now()).total_seconds() > 0:
@@ -181,7 +180,7 @@ class Api42:
                     data = response._content
                     break
             else:
-                if not v3 and int(response.headers['x-secondly-ratelimit-remaining']) == int(response.headers['x-secondly-ratelimit-limit']) - 1:
+                if not self.v3 and int(response.headers['x-secondly-ratelimit-remaining']) == int(response.headers['x-secondly-ratelimit-limit']) - 1:
                     self.next_time_full = datetime.now() + timedelta(seconds=1.0 - float(response.headers['x-runtime']))
                 try:
                     data = response.json()
@@ -191,7 +190,7 @@ class Api42:
 
         return (status, data)
 
-    def _getv2(self, url, *, filter={}, range={}, page={}, sort=None, params={}, fetch_all=True, token=None):
+    def _getv2(self, url, *, filter={}, range={}, page={}, sort=None, params={}, fetch_all=True):
         data = []
         _params = params.copy()
         _params['page[size]'] = 100
@@ -205,7 +204,7 @@ class Api42:
         for k, v in page.items():
             _params[f"page[{k}]"] = v
         while True:
-            status, r = self._request("GET", url, params=_params, token=token, v3=False)
+            status, r = self._request("GET", url, params=_params)
             if status >= 200 and status <= 299:
                 if type(r) != list:
                     data = r
@@ -219,13 +218,13 @@ class Api42:
                 break
         return (status, data)
     
-    def _getv3(self, url, *, params={}, fetch_all=True, token=None):
+    def _getv3(self, url, *, params={}, fetch_all=True):
         data = []
         _params = {'size': 100, 'page': 1}
         for k, v in params.items(): #allows override of size/number
             _params[k] = v
         while True:
-            status, r = self._request("GET", url, params=_params, token=token, v3=True)
+            status, r = self._request("GET", url, params=_params)
             if status >= 200 and status <= 299:
                 if 'items' not in r:
                     data = r
@@ -240,28 +239,30 @@ class Api42:
         return (status, data)
 
     @_detect_v3
-    def get(self, url, *, filter={}, range={}, page={}, sort=None, params={}, fetch_all=True, token=None, v3=False):
-        if v3:
-            return self._getv3(url, params=params, fetch_all=fetch_all, token=token)
+    def get(self, url, *, filter={}, range={}, page={}, sort=None, params={}, fetch_all=True, token=None):
+        if token:
+            self.token = token
+        if self.v3:
+            return self._getv3(url, params=params, fetch_all=fetch_all)
         else:
-            return self._getv2(url, filter=filter, range=range, page=page, sort=sort, params=params, fetch_all=fetch_all, token=token)
+            return self._getv2(url, filter=filter, range=range, page=page, sort=sort, params=params, fetch_all=fetch_all)
 
     @_detect_v3
-    def patch(self, url, *, json={}, token=None, v3=False):
-        status, data = self._request("PATCH", url, json=json, token=token, v3=v3)
+    def patch(self, url, *, json={}, token=None):
+        status, data = self._request("PATCH", url, json=json, token=token)
         return (status, data)
 
     @_detect_v3
-    def put(self, url, *, json={}, token=None, v3=False):
-        status, data = self._request("PUT", url, json=json, token=token, v3=v3)
+    def put(self, url, *, json={}, token=None):
+        status, data = self._request("PUT", url, json=json, token=token)
         return (status, data) 
 
     @_detect_v3
-    def post(self, url, *, json={}, token=None, v3=False):
-        status, data = self._request("POST", url, json=json, token=token, v3=v3)
+    def post(self, url, *, json={}, token=None):
+        status, data = self._request("POST", url, json=json, token=token)
         return (status, data)
 
     @_detect_v3
-    def delete(self, url, *, json={}, token=None, v3=False):
-        status, data = self._request("DELETE", url, json=json, token=token, v3=v3)
+    def delete(self, url, *, json={}, token=None):
+        status, data = self._request("DELETE", url, json=json, token=token)
         return (status, data)
