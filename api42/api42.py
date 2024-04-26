@@ -249,20 +249,28 @@ class Api42:
 
     @_detect_v3
     def patch(self, url, *, json={}, token=None):
-        status, data = self._request("PATCH", url, json=json, token=token)
+        if token:
+            self.token = token
+        status, data = self._request("PATCH", url, json=json)
         return (status, data)
 
     @_detect_v3
     def put(self, url, *, json={}, token=None):
-        status, data = self._request("PUT", url, json=json, token=token)
+        if token:
+            self.token = token
+        status, data = self._request("PUT", url, json=json)
         return (status, data) 
 
     @_detect_v3
     def post(self, url, *, json={}, token=None):
-        status, data = self._request("POST", url, json=json, token=token)
+        if token:
+            self.token = token
+        status, data = self._request("POST", url, json=json)
         return (status, data)
 
     @_detect_v3
     def delete(self, url, *, json={}, token=None):
-        status, data = self._request("DELETE", url, json=json, token=token)
+        if token:
+            self.token = token
+        status, data = self._request("DELETE", url, json=json)
         return (status, data)
