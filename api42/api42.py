@@ -230,7 +230,7 @@ class Api42:
                     data = r
                     break
                 data += r['items']
-                if not fetch_all or r['page'] == r['pages']:
+                if not fetch_all or not r['pages'] or r['page'] == r['pages']:
                     break
                 _params['page'] += 1
             else:
